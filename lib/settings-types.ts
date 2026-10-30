@@ -222,6 +222,8 @@ export type NovelAiPreset = {
 
 export type NovelAiSettings = {
     apiKey: string;
+    /** 自定义中转站地址，留空则使用官方直连 https://image.novelai.net */
+    baseUrl?: string;
     activePresetId: string;
     presets: NovelAiPreset[];
 };

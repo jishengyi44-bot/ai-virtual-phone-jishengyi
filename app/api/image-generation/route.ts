@@ -26,6 +26,8 @@ type ImageGenerationRequest = {
   quality?: string;
   referenceImageDataUrl?: string;
   // NovelAI 专属参数
+  /** NovelAI 自定义中转站地址，留空则用官方 https://image.novelai.net */
+  naiBaseUrl?: string;
   negativePrompt?: string;
   steps?: number;
   scale?: number;
@@ -208,7 +210,8 @@ async function runNovelAiGeneration(input: ImageGenerationRequest): Promise<{ st
 
     const { width, height } = getNovelAiResolution(input.size);
 
-    const url = "https://image.novelai.net/ai/generate-image";
+    const naiBaseHost = input.naiBaseUrl ? input.naiBaseUrl.trim().replace(/\/+$/, "") : "https://image.novelai.net";
+    const url = `${naiBaseHost}/ai/generate-image`;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",

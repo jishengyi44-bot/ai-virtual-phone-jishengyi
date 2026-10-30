@@ -514,13 +514,16 @@ async function generateNovelAiDirect(params: {
   preset: NovelAiPreset;
   prompt: string;
   signal?: AbortSignal;
+  /** 自定义中转站 base URL，留空则用官方地址 */
+  naiBaseUrl?: string;
 }): Promise<ImageGenerationApiResponse> {
-  const { apiKey, preset, prompt, signal } = params;
+  const { apiKey, preset, prompt, signal, naiBaseUrl } = params;
   throwIfAborted(signal);
 
   const { width, height } = getNovelAiResolution(preset.resolution);
 
-  const url = "https://image.novelai.net/ai/generate-image";
+  const baseHost = naiBaseUrl ? naiBaseUrl.trim().replace(/\/+$/, "") : "https://image.novelai.net";
+  const url = `${baseHost}/ai/generate-image`;
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
@@ -602,8 +605,10 @@ async function generateNovelAiViaServer(params: {
   preset: NovelAiPreset;
   prompt: string;
   signal?: AbortSignal;
+  /** 自定义中转站 base URL，留空则用官方地址 */
+  naiBaseUrl?: string;
 }): Promise<ImageGenerationApiResponse> {
-  const { apiKey, preset, prompt, signal } = params;
+  const { apiKey, preset, prompt, signal, naiBaseUrl } = params;
   throwIfAborted(signal);
 
   const controller = new AbortController();
@@ -620,6 +625,7 @@ async function generateNovelAiViaServer(params: {
       body: JSON.stringify({
         provider: "novelai",
         apiKey,
+        ...(naiBaseUrl ? { naiBaseUrl: naiBaseUrl.trim().replace(/\/+$/, "") } : {}),
         model: normalizeNovelAiModel(preset.model),
         prompt,
         size: resolution.value,
@@ -690,14 +696,15 @@ async function generateNovelAiViaServer(params: {
   }
 }
 
-export async function fetchNovelAiModels(apiKey: string): Promise<string[]> {
+export async function fetchNovelAiModels(apiKey: string, naiBaseUrl?: string): Promise<string[]> {
   const token = apiKey.trim();
   if (!token) throw new Error("请先填写 NovelAI API Token。");
 
+  const baseHost = naiBaseUrl ? naiBaseUrl.trim().replace(/\/+$/, "") : "https://image.novelai.net";
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
   try {
-    const res = await fetch("https://image.novelai.net/user/data", {
+    const res = await fetch(`${baseHost}/user/data`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
@@ -752,9 +759,10 @@ export async function generateImageFromConfiguredApi(params: {
     if (description) positiveParts.push(description);
     const fullPrompt = positiveParts.join(", ");
 
+    const naiBaseUrl = settings.novelai?.baseUrl?.trim() || undefined;
     const data = settings.requestMode === "direct"
-      ? await generateNovelAiDirect({ apiKey: naiApiKey, preset: activePreset, prompt: fullPrompt, signal: params.signal })
-      : await generateNovelAiViaServer({ apiKey: naiApiKey, preset: activePreset, prompt: fullPrompt, signal: params.signal });
+      ? await generateNovelAiDirect({ apiKey: naiApiKey, preset: activePreset, prompt: fullPrompt, signal: params.signal, naiBaseUrl })
+      : await generateNovelAiViaServer({ apiKey: naiApiKey, preset: activePreset, prompt: fullPrompt, signal: params.signal, naiBaseUrl });
 
     throwIfAborted(params.signal);
     const mimeType = data.mimeType || "image/png";

@@ -174,6 +174,7 @@ export function ImageGenerationSettings() {
         const activePreset = presets.find(p => p.id === nai?.activePresetId) || presets[0];
         return {
             apiKey: nai?.apiKey || "",
+            baseUrl: nai?.baseUrl || "",
             activePresetId: activePreset.id,
             presets,
             activePreset,
@@ -185,6 +186,7 @@ export function ImageGenerationSettings() {
             ...settings,
             novelai: {
                 apiKey: naiSettings.apiKey,
+                baseUrl: naiSettings.baseUrl,
                 activePresetId: naiSettings.activePresetId,
                 presets: naiSettings.presets,
                 ...patch,
@@ -269,7 +271,7 @@ export function ImageGenerationSettings() {
         }
         setIsFetchingNaiModels(true);
         try {
-            const fetched = await fetchNovelAiModels(naiSettings.apiKey);
+            const fetched = await fetchNovelAiModels(naiSettings.apiKey, naiSettings.baseUrl || undefined);
             setNaiModels(fetched);
             setNaiTokenStatus({
                 success: true,
@@ -396,6 +398,17 @@ export function ImageGenerationSettings() {
                                     </Alert>
                                 </div>
                             )}
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <label className="menu-desc ml-1">中转站地址（可选）</label>
+                            <Input
+                                type="url"
+                                value={naiSettings.baseUrl || ""}
+                                onChange={(event) => updateNovelAi({ baseUrl: event.target.value || undefined })}
+                                placeholder="https://xxxxx/v1（留空使用官方直连）"
+                            />
+                            <span className="menu-desc ml-1 opacity-70">填写后将替换官方地址 https://image.novelai.net，Token 验证与生图请求均走此地址。</span>
                         </div>
 
                         {/* 预设管理栏 */}
